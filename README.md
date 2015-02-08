@@ -56,8 +56,8 @@ $db->insert(
     Groups::table(),
     ['name', 'params'],
     [
-        ['Группа №1', '{params:[]}'],
-        ['Группа №2', '{params:[]}']
+        ['Group #1', '{params:[]}'],
+        ['Group #2', '{params:[]}']
     ]
 );
 ```
