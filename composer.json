@@ -1,0 +1,25 @@
+{
+    "name": "Shlikhota/postgresdb-php",
+    "description": "PostgreSQL database abstract layer over PDO extension",
+    "license": "MIT",
+    "keywords": ["database", "postgresql", "psql", "pdo"],
+    "authors": [
+        {
+            "name": "Eugene Shlikhota",
+            "email": "shlikhota@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.4.0"
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "1.0-dev"
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "PostgresDB\\": "src/"
+        }
+    }
+}
