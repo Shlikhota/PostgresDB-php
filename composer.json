@@ -1,5 +1,5 @@
 {
-    "name": "Shlikhota/postgresdb-php",
+    "name": "shlikhota/postgresdb-php",
     "description": "PostgreSQL database abstract layer over PDO extension",
     "license": "MIT",
     "keywords": ["database", "postgresql", "psql", "pdo"],
