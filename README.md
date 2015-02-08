@@ -1,4 +1,6 @@
 PostgreSQL database abstract layer over PDO extension.
+------------------------------------------------------
+**Requires**: PHP >= 5.4
 
 ```SQL
 -- For run tests
@@ -7,23 +9,19 @@ create database psqldriver_tests owner psqldriver_owner;
 ```
 
 Run tests:
+```SH
 phpunit --stop-on-failure --bootstrap=vendor/autoload.php tests/
+```
 
+###SELECT
 ```PHP
 // add alias namespace
 use PostgresDB\Driver as DB;
 // use instance
 $db = DB::instance();
-```
 
-```PHP
-$db->query('
-    CREATE TABLE users
-
-');
-
-
-$query = self::$db->select()->from('users');
+// SELECT * FROM users [WHERE active = 1] [LIMIT $limit]
+$query = $db->select()->from('users');
 if ($limit !== null) {
     $query->limit($limit);
 }
@@ -31,12 +29,10 @@ if ($active === true) {
     $query->where('active = ?', 1);
 }
 $result = $query->fetchAll();
-```
 
-```PHP
 // SELECT * FROM o_users WHERE id = 14
 $db->select()
-     ->from('o_users')
+     ->from('users')
      ->where('id = ?', 14)
      ->fetchRow();
 
@@ -53,8 +49,7 @@ $db->select('username')
      ->limit(10);
 ```
 
-
-INSERT
+###INSERT
 ```PHP
 // Insert two enrties into group table
 $db->insert(
@@ -67,13 +62,13 @@ $db->insert(
 );
 ```
 
-UPDATE
+###UPDATE
 ```PHP
 // Set active to users whom
 $db->update(Users::table(), ['active' => 1], ['deleted' => 0, 'active' => 0]);
 ```
 
-DELETE
+###DELETE
 ```PHP
 // Remove non-active users
 $db->delete(Users::table(), ['active' => 0]);
