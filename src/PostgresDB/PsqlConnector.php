@@ -216,12 +216,12 @@ class PsqlConnector implements ConnectorInterface {
     /**
      * @inheritdoc
      */
-    public function transaction(Closure $callback)
+    public function transaction(\Closure $callback)
     {
         $this->begin();
         try {
             $result = $callback($this);
-            $this->commit;
+            $this->commit();
         } catch (\Exception $exception) {
             $this->rollback();
             throw $exception;

@@ -18,6 +18,7 @@
             <file>tests/Base.php</file>
             <file>tests/BasicTest.php</file>
             <file>tests/SelectQueriesTest.php</file>
+            <file>tests/AdditionalTest.php</file>
         </testsuite>
     </testsuites>
     <filter>

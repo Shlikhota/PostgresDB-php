@@ -35,7 +35,7 @@ interface ConnectorInterface {
      * @param Closure $callback Callback function doing in transaction
      * @return void
      */
-    public function transaction(Closure $callback);
+    public function transaction(\Closure $callback);
 
     /**
      * Begin transaction
