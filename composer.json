@@ -19,7 +19,7 @@
     },
     "autoload": {
         "psr-4": {
-            "PostgresDB\\": "src/"
+            "PostgresDB\\": "src/PostgresDB/"
         }
     }
 }
