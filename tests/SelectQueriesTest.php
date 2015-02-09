@@ -89,10 +89,4 @@ class SelectQueriesTest extends Base {
         );
     }
 
-    public function testQueryLog()
-    {
-        $result = $this->db->getQueriesLog();
-        var_dump($result);
-    }
-
 }

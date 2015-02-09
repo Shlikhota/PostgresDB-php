@@ -1,7 +1,5 @@
 <?php
 
-require_once __DIR__ . '/Base.php';
-
 class BasicTest extends Base {
 
     public function testDatabaseConnectionWithSimpleQuery()
