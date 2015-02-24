@@ -13,7 +13,7 @@ namespace PostgresDB;
 class Driver {
 
     /** @var PsqlConnector */
-    private static $instance;
+    private static $connector;
 
     /**
      * Returns instance of PsqlConnector
@@ -22,12 +22,16 @@ class Driver {
      * @param string $logger A name of class which implements PSR-3 methods
      * @return PsqlConnector
      */
-    public static function instance($config = null, $logger = null)
+    public function __construct($config, $logger = null)
     {
-        if (self::$instance === null && !empty($config)) {
-            self::$instance = new PsqlConnector($config, $logger);
+        if (self::$connector === null && !empty($config)) {
+            self::$connector = new PsqlConnector($config, $logger);
         }
-        return self::$instance;
+    }
+
+    public function __call($method, $args)
+    {
+        return call_user_func_array(array(self::$connector, $method), $args);
     }
 
 }

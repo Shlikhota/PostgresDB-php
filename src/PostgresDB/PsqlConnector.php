@@ -27,7 +27,8 @@ class PsqlConnector implements ConnectorInterface {
 
     const MSG_ERROR_NO_CONNECTION = 'No connection';
     const MSG_ERROR_WRONG_QUERY_PARAMS = 'Wrong query params';
-    const MSG_ERROR_SWITCH_SERVER_IN_TRANSACTION = 'Not available change server name in transaction.';
+    const MSG_ERROR_DATABASE_DOESNT_EXIST = 'Attempting to change a non-existent database server';
+    const MSG_ERROR_SWITCH_SERVER_IN_TRANSACTION = 'Changing the server is not available in the transaction.';
     const MSG_ERROR_NON_UTF8_SEQUENCE = 'Non utf-8 sequance detected';
     const MSG_ERROR_NOT_ENOUGH_BINDING_PARAMS = 'Replace parameters not enough for query';
 
@@ -46,10 +47,13 @@ class PsqlConnector implements ConnectorInterface {
      * @param string $name Server name
      * @return void
      */
-    private function setDatabaseServer($name)
+    public function setDatabaseServer($name)
     {
         if ($this->getTransactionsLevel()) {
-            $this->exception(self::MSG_ERROR_SWITCH_SERVER_IN_TRANSACTION, compact($name));
+            $this->exception(self::MSG_ERROR_SWITCH_SERVER_IN_TRANSACTION, compact('name'));
+        }
+        if (empty($this->config[$this->currentServer])) {
+            $this->exception(self::MSG_ERROR_DATABASE_DOESNT_EXIST, compact('name'));
         }
         $this->currentServer = $name;
     }
@@ -62,10 +66,7 @@ class PsqlConnector implements ConnectorInterface {
      */
     private function connect()
     {
-        $server = (
-            $this->currentServer !== null && isset($this->config[$this->currentServer])
-            ? $this->currentServer : 'default'
-        );
+        $server = ($this->currentServer !== null ? $this->currentServer : 'default');
         try {
             if ( ! empty($this->connections[$server]) && $this->connections[$server] instanceof PDO) {
                 $this->currentServer = $server;
@@ -78,7 +79,9 @@ class PsqlConnector implements ConnectorInterface {
                     . ';dbname=' . $config['database'],
                 $config['username'],
                 $config['password'],
-                array_diff_key($this->options, $config['options']) + $config['options']
+                !empty($config['options'])
+                    ? array_diff_key($this->options, $config['options']) + $config['options']
+                    : $this->options
             );
             $this->connections[$server]->prepare("set names '" . $config['charset'] . "'")->execute();
         } catch (PDOException $exception) {
@@ -102,7 +105,7 @@ class PsqlConnector implements ConnectorInterface {
             if ( ! $dbh = $this->connect()) {
                 $this->exception(
                     self::MSG_ERROR_NO_CONNECTION,
-                    compact($function, $query, $bindings)
+                    compact('function', 'query', 'bindings')
                 );
             }
             $this->prepareQuery($query, $bindings);
@@ -112,10 +115,10 @@ class PsqlConnector implements ConnectorInterface {
             $timeEnd = (microtime(true) - $timeStart) * 1000;
             $this->addQueryLog($query, $timeEnd);
             if ($statement === false) {
-                $err = $dbh->errorInfo();
+                $error = $dbh->errorInfo();
                 $this->exception(
-                    $err[2] . ' ' . $err[1],
-                    compact($function, $query, $bindings)
+                    $error[2] . ' ' . $error[1],
+                    compact('function', 'query', 'bindings')
                 );
             }
             switch ($function):
@@ -145,11 +148,17 @@ class PsqlConnector implements ConnectorInterface {
                     $result = $statement->fetch();
                     break;
                 case 'insert':
+                    $result = (
+                        (mb_stripos($query, 'returning') !== false)
+                        ? $statement->fetchAll(PDO::FETCH_COLUMN, 0)
+                        : $statement->rowCount()
+                    );
+                    break;
                 case 'update':
                 case 'delete':
                     $result = (
                         (mb_stripos($query, 'returning') !== false)
-                        ? $statement->fetchAll(PDO::FETCH_COLUMN)
+                        ? $statement->fetchAll(PDO::FETCH_ASSOC)
                         : $statement->rowCount()
                     );
                     break;
@@ -246,9 +255,11 @@ class PsqlConnector implements ConnectorInterface {
      */
     public function commit()
     {
-        $this->transactionLevel--;
-        if ($this->getTransactionsLevel() === 0) {
-            $this->connect()->commit();
+        if ($this->getTransactionsLevel() > 0) {
+            $this->transactionLevel--;
+            if ($this->getTransactionsLevel() === 0) {
+                $this->connect()->commit();
+            }
         }
         return $this;
     }
@@ -290,7 +301,7 @@ class PsqlConnector implements ConnectorInterface {
         if ( ! is_array($data) || empty($data) || ! is_array($data[0])) {
             $this->exception(
                 self::MSG_ERROR_WRONG_QUERY_PARAMS,
-                compact($table, $fields, $data, $returning)
+                compact('table', 'fields', 'data', 'returning')
             );
         }
         $placeholders = '(?' . str_repeat(',?', count($fields)-1) . ')';
@@ -314,11 +325,11 @@ class PsqlConnector implements ConnectorInterface {
         if ( ! is_array($data) || empty($data) || ! is_array($data[0])) {
             $this->exception(
                 self::MSG_ERROR_WRONG_QUERY_PARAMS,
-                compact($table, $data, $where)
+                compact('table', 'data', 'where')
             );
         }
         $query = 'UPDATE ' . $table . ' SET "' . implode('" = ?, "', array_keys($data)) . '" = ?';
-        if (!empty($where)) {
+        if ( ! empty($where)) {
             if (is_array($where)) {
                 $query .= ' WHERE ' . $this->prepareCondition($where);
             } else if (is_string($where)) {
@@ -334,7 +345,7 @@ class PsqlConnector implements ConnectorInterface {
      */
     public function delete($table, $where = null, $returning = false)
     {
-        $query = 'DELETE FROM ' . $table . ' ';
+        $query = 'DELETE FROM ' . $table;
         if (!empty($where)) {
             if (is_array($where)) {
                 $query .= ' WHERE ' . $this->prepareCondition($where);
@@ -342,7 +353,17 @@ class PsqlConnector implements ConnectorInterface {
                 $query .= ' WHERE ' . $where;
             }
         }
-        return $this->execute(__FUNCTION__, $query . ($returning ? ' RETURNING *' : ''));
+        if ($returning !== false) {
+            $query .= ' RETURNING ';
+            if (is_array($returning)) {
+                $query .= implode(', ', $returning);
+            } else if (is_string($returning)) {
+                $query .= $returning;
+            } else {
+                $query .= '*';
+            }
+        }
+        return $this->execute(__FUNCTION__, $query);
     }
 
     /**
@@ -422,12 +443,12 @@ class PsqlConnector implements ConnectorInterface {
      */
     private function exception($message, $context)
     {
-        if ($this->logger_class &&
-            method_exists($this->logger_class, 'critical')
+        if ($this->logger &&
+            method_exists($this->logger, 'critical')
         ) {
             // Should be implement PSR-3 logger interface
             call_user_func(
-                $this->logger_class . '::critical',
+                $this->logger . '::critical',
                 $message,
                 $context
             );
@@ -524,7 +545,7 @@ class PsqlConnector implements ConnectorInterface {
      */
     private function getCalledMethod()
     {
-        if ($this->isDebug) {
+        if ( ! $this->isDebug) {
             return '';
         }
         $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
