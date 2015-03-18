@@ -21,7 +21,7 @@ abstract class Base extends PHPUnit_Framework_TestCase {
             'charset' => 'utf8',
             'options' => []
         ];
-        $this->db = PostgresDB\Driver::instance($config)
+        $this->db = (new PostgresDB\Driver($config))
             ->isLog(true)
             ->setDebug(true);
     }
