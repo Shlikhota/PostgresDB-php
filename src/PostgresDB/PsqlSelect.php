@@ -235,7 +235,7 @@ class PsqlSelect implements SelectInterface {
         return $this;
     }
 
-    public function getBindings()
+    private function getBindings()
     {
         return array_reduce($this->bindings, function($carry, $item) {
             if ($carry === null) {
