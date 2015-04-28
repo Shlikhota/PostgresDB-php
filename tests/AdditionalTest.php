@@ -15,4 +15,21 @@ class AdditionalTest extends Base {
         $this->assertEquals(1, $deleted);
     }
 
+    public function testCallFunctionInSelect()
+    {
+        $result = $this->db->select('t.date::date')
+            ->from('generate_series(?::date, ?::date, ?) AS t(date)', ['2015-04-21', '2015-04-23', '1 day'])
+            ->fetchColumn();
+        $this->assertEquals(['2015-04-21', '2015-04-22', '2015-04-23'], $result);
+    }
+
+    public function testCallFunctionInFrom()
+    {
+        $result = $this->db->select(
+            'generate_series(?::date, ?::date, ?)::date',
+            ['2015-04-25', '2015-04-27', '1 day']
+        )->fetchColumn();
+        $this->assertEquals(['2015-04-25', '2015-04-26', '2015-04-27'], $result);
+    }
+
 }

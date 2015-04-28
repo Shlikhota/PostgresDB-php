@@ -8,6 +8,7 @@ class PsqlSelect implements SelectInterface {
     /** @var array replace parameters */
     private $bindings = [
         'select' => [],
+        'from' => [],
         'where' => [],
         'having' => []
     ];
@@ -16,8 +17,13 @@ class PsqlSelect implements SelectInterface {
     {
         $columns = func_get_args();
         $this->db = $columns[0];
-        if (!empty($columns[1])) {
-            $this->addColumns(is_array($columns[1][0]) ? $columns[1][0] : $columns[1]);
+        if ( ! empty($columns[1])) {
+            if ( ! empty($columns[1][1]) && is_array($columns[1][1])) {
+                $this->bindings['select'] = $this->bindings['select'] + $columns[1][1];
+                $this->addColumns($columns[1][0]);
+            } else {
+                $this->addColumns(is_array($columns[1][0]) ? $columns[1][0] : $columns[1]);
+            }
         }
     }
 
@@ -75,11 +81,14 @@ class PsqlSelect implements SelectInterface {
     /**
      * @inheritdoc
      */
-    public function from($table)
+    public function from($table, $bindings = [])
     {
         if (is_string($table)) {
             $this->string['from'][] = $table;
-        } else if (is_array($table) && !empty($table)) {
+            if ( ! empty($bindings) && is_array($bindings)) {
+                $this->bindings['from'] = $this->bindings['from'] + $bindings;
+            }
+        } else if ( ! empty($table) && is_array($table)) {
             foreach ($table as $name => $alias) {
                 $this->string['from'][] = '"' . $name . '" AS ' . $alias;
             }
@@ -93,7 +102,7 @@ class PsqlSelect implements SelectInterface {
     public function where($condition, $bindings = [])
     {
         $this->string['where'][] = $condition;
-        $this->bindings['where'] = $this->bindings['where'] + (array)$bindings;
+        array_push($this->bindings['where'], $bindings);
         return $this;
     }
 
@@ -103,7 +112,9 @@ class PsqlSelect implements SelectInterface {
     public function having($condition, $bindings = [])
     {
         $this->string['having'][] = $condition;
-        $this->bindings['having'] = $this->bindings['having'] + (array)$bindings;
+        if ( ! empty($bindings) && is_array($bindings)) {
+            $this->bindings['having'] = $this->bindings['having'] + $bindings;
+        }
         return $this;
     }
 
@@ -224,10 +235,16 @@ class PsqlSelect implements SelectInterface {
         return $this;
     }
 
-    private function getBindings()
+    public function getBindings()
     {
         return array_reduce($this->bindings, function($carry, $item) {
-            return $carry === null ? $item : $carry + $item;
+            if ($carry === null) {
+                return $item;
+            }
+            foreach ($item as $value) {
+                $carry[] = $value;
+            }
+            return $carry;
         });
     }
 
