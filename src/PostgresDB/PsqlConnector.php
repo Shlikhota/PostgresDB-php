@@ -548,12 +548,21 @@ class PsqlConnector implements ConnectorInterface {
         if ( ! $this->isDebug) {
             return '';
         }
-        $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-        $index = stripos($backtrace[4]['class'], 'PostgresDB') !== 0 ? 4 : 5;
-        return $backtrace[$index]['class']
-            . $backtrace[$index]['type']
-            . $backtrace[$index]['function']
-            . '[' . $backtrace[$index-1]['line'] . ']';
+        $placeIndex = 0;
+        $backtrace = array_reverse(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS), true);
+        foreach ($backtrace as $index => $call) {
+            if (isset($call['class']) && stripos($call['class'], 'PostgresDB\\') === 0) {
+                $placeIndex = $index + 1;
+                break;
+            }
+        }
+        if ( ! $placeIndex) {
+            return '';
+        }
+        return $backtrace[$placeIndex]['class']
+            . $backtrace[$placeIndex]['type']
+            . $backtrace[$placeIndex]['function']
+            . '[' . $backtrace[$placeIndex-1]['line'] . ']';
     }
 
     /**

@@ -5,7 +5,7 @@ use PostgresDB\Driver as DB;
 abstract class Model {
 
     /** @var $table The table name of model */
-    private static $table = '';
+    protected static $table = '';
 
     /**
      * Returns the table name of the model
@@ -37,7 +37,7 @@ abstract class Model {
      */
     public static function count($where = [])
     {
-        $query = DB::instance()->select('COUNT("id")')->from(static::table());
+        $query = DB::instance()->select('COUNT(0)')->from(static::table());
         if ($where) {
             if (is_array($where)) {
                 $query->where(DB::instance()->prepareWhere($where));
