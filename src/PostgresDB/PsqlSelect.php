@@ -101,8 +101,7 @@ class PsqlSelect implements SelectInterface {
      */
     public function where($condition, $bindings = [])
     {
-        $this->string['where'][] = $condition;
-        array_push($this->bindings['where'], $bindings);
+        $this->addCondition('where', $condition, $bindings);
         return $this;
     }
 
@@ -111,11 +110,19 @@ class PsqlSelect implements SelectInterface {
      */
     public function having($condition, $bindings = [])
     {
-        $this->string['having'][] = $condition;
-        if ( ! empty($bindings) && is_array($bindings)) {
-            $this->bindings['having'] = $this->bindings['having'] + $bindings;
-        }
+        $this->addCondition('having', $condition, $bindings);
         return $this;
+    }
+
+    private function addCondition($clause, $condition, $bindings)
+    {
+        $this->string[$clause][] = $condition . (mb_strpos($condition, '?') === false ? ' = ?' : '');
+        if ( ! empty($bindings)) {
+            if (is_array($bindings) && mb_substr_count($condition, '?') === 1) {
+                $bindings = [$bindings];
+            }
+            $this->bindings[$clause] += (array) $bindings;
+        }
     }
 
     /**

@@ -1,6 +1,6 @@
 <?php
 
-use \PostgresDB\Driver as DB;
+use PostgresDB\Driver as DB;
 
 class SelectQueriesTest extends Base {
 
@@ -49,7 +49,7 @@ class SelectQueriesTest extends Base {
 
     public function testSelectFetchOneWhereValueIsFirstColumnOfFirstEntry()
     {
-        $result = DB::select('name')->from('public.users')->where('id = ?', 5)->fetchOne();
+        $result = DB::select('name')->from('public.users')->where('id', 5)->fetchOne();
         $this->assertEquals($this->users[0][0], $result);
     }
 
@@ -72,7 +72,7 @@ class SelectQueriesTest extends Base {
 
     public function testSelectFetchRowAsObject()
     {
-        $result = DB::select()->from('public.users')->where('id = ?', 5)->fetchRow();
+        $result = DB::select()->from('public.users')->where('id', 5)->fetchRow();
         $this->assertThat(
             $result,
             $this->logicalAnd(

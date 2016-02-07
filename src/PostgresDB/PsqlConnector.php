@@ -296,7 +296,7 @@ class PsqlConnector implements ConnectorInterface {
     /**
      * @inheritdoc
      */
-    public function insert($table, $fields, $data, $returning = true)
+    public function insert($table, $fields, $data, $returning = false)
     {
         if ( ! is_array($data) || empty($data) || ! is_array($data[0])) {
             $this->exception(
@@ -329,15 +329,15 @@ class PsqlConnector implements ConnectorInterface {
             );
         }
         $query = 'UPDATE ' . $table . ' SET "' . implode('" = ?, "', array_keys($data)) . '" = ?';
+        $bindings = array_values($data);
         if ( ! empty($where)) {
             if (is_array($where)) {
-                $query .= ' WHERE ' . $this->prepareCondition($where);
+                $query .= ' WHERE ' . $this->prepareCondition($where, $bindings);
             } else if (is_string($where)) {
                 $query .= ' WHERE ' . $where;
             }
         }
-        $this->prepareQuery($query, array_values($data));
-        return $this->execute(__FUNCTION__, $query);
+        return $this->execute(__FUNCTION__, $query, $bindings);
     }
 
     /**
@@ -346,9 +346,10 @@ class PsqlConnector implements ConnectorInterface {
     public function delete($table, $where = null, $returning = false)
     {
         $query = 'DELETE FROM ' . $table;
+        $bindings = [];
         if (!empty($where)) {
             if (is_array($where)) {
-                $query .= ' WHERE ' . $this->prepareCondition($where);
+                $query .= ' WHERE ' . $this->prepareCondition($where, $bindings);
             } else if (is_string($where)) {
                 $query .= ' WHERE ' . $where;
             }
@@ -363,7 +364,7 @@ class PsqlConnector implements ConnectorInterface {
                 $query .= '*';
             }
         }
-        return $this->execute(__FUNCTION__, $query);
+        return $this->execute(__FUNCTION__, $query, $bindings);
     }
 
     /**
@@ -505,37 +506,24 @@ class PsqlConnector implements ConnectorInterface {
     /**
      * @inheritdoc
      */
-    public function prepareCondition($whereArray)
+    public function prepareCondition($whereArray, &$bindings)
     {
-        $aWhere = [];
-        foreach ($whereArray as $field => $value) {
-
-            $field = trim(mb_strtolower($field));
-            preg_match('/^([a-z]+[a-z0-9_]*)(\s*)?(.*)?$/', $field, $parseKey);
-            if ( !($field = $parseKey[1]) ) continue;
-            $operand = trim($parseKey[3]);
-
-            if (is_float($value) || is_int($value)) {
-                $aWhere[] = ' "' . $field . '" ' . ($operand ? : '=') . ' ' . $value;
-            } else if (is_array($value)) {
-                foreach ($value as &$subval) {
-                    if (!(is_float($subval) || is_int($subval))){
-                        $subval = $this->quote($subval);
-                    }
-                }
-                if ($operand === 'between' && isset($value[0]) && isset($value[1])) {
-                    $aWhere[] = ' "' . $field . ' BETWEEN ' . $value[0] . ' AND ' . $value[1];
-                } else {
-                    $aWhere[] = ' "' . $field . '" ' . ($operand ? : 'IN') . ' (' . implode(', ', $value) . ')';
-                }
-            } else if ($value === null) {
-                $aWhere[] = ' "' . $field . '" ' . ($operand ? : 'IS') . ' NULL';
-            } else {
-                $aWhere[] = ' "' . $field . '" ' . ($operand ? : '=') . ' ' . $this->quote($value);
+        $where = [];
+        foreach ($whereArray as $expression => $value) {
+            if (is_int($expression)) {
+                $where[] = $value;
+                continue;
             }
-
+            $expression = trim(mb_strtolower($expression));
+            $where[] = $expression . (mb_strpos($expression, '?') === false ? ' = ?' : '');
+            if (is_array($value) && mb_strpos($expression, ' between ') !== false) {
+                $bindings[] = $value[0];
+                $bindings[] = $value[1];
+                continue;
+            }
+            $bindings[] = $value;
         }
-        return implode(' AND ', $aWhere);
+        return '(' . implode(') AND (', $where) . ')';
     }
 
     /**
@@ -551,7 +539,7 @@ class PsqlConnector implements ConnectorInterface {
         $placeIndex = 0;
         $backtrace = array_reverse(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS), true);
         foreach ($backtrace as $index => $call) {
-            if (isset($call['class']) && stripos($call['class'], 'PostgresDB\\') === 0) {
+            if (isset($call['class']) && strpos($call['class'], 'PostgresDB\\') === 0) {
                 $placeIndex = $index + 1;
                 break;
             }

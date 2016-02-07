@@ -1,12 +1,12 @@
 <?php
 
-use \PostgresDB\Driver as DB;
+use PostgresDB\Driver as DB;
 
 class BasicTest extends Base {
 
-    public function testDatabaseConnectionWithSimpleQuery()
+    public function testSimpleQuery()
     {
-        $result = DB::fetchOne("SELECT ?", ['Hello from Postgres!']);
+        $result = DB::fetchOne('SELECT ?', 'Hello from Postgres!');
         $this->assertEquals('Hello from Postgres!', $result);
     }
 
@@ -35,7 +35,7 @@ class BasicTest extends Base {
      */
     public function testFillCreatedTable()
     {
-        $result = DB::insert('public.users', ['name'], $this->users);
+        $result = DB::insert('public.users', ['name'], $this->users, true);
         $this->assertEquals([5,6,7], $result);
     }
 

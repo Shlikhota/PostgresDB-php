@@ -1,6 +1,6 @@
 <?php
 
-use \PostgresDB\Driver as DB;
+use PostgresDB\Driver as DB;
 
 class AdditionalTest extends Base {
 

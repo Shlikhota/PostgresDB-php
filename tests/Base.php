@@ -15,9 +15,9 @@ abstract class Base extends PHPUnit_Framework_TestCase {
         $config = [
             'host' => 'localhost',
             'port' => '5432',
-            'database' => 'psqldriver_tests',
-            'username' => 'psqldriver_owner',
-            'password' => '123',
+            'database' => 'postgresdb_tests',
+            'username' => 'postgresdb_tests',
+            'password' => '',
             'charset' => 'utf8',
             'options' => []
         ];

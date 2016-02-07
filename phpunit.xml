@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit backupGlobals="false"
-         backupStaticAttributes="false"
-         bootstrap="vendor/autoload.php"
+<phpunit bootstrap="vendor/autoload.php"
          colors="true"
          convertErrorsToExceptions="true"
          convertNoticesToExceptions="true"
@@ -10,20 +8,13 @@
          stopOnError="false"
          stopOnFailure="false"
          syntaxCheck="true"
-         strict="false"
          verbose="true"
 >
     <testsuites>
-        <testsuite name="PostgresDB-php Test Suite">
-            <file>tests/Base.php</file>
+        <testsuite name="Basic">
             <file>tests/BasicTest.php</file>
             <file>tests/SelectQueriesTest.php</file>
             <file>tests/AdditionalTest.php</file>
         </testsuite>
     </testsuites>
-    <filter>
-        <whitelist processUncoveredFilesFromWhitelist="true">
-            <directory suffix=".php">./src</directory>
-        </whitelist>
-    </filter>
 </phpunit>

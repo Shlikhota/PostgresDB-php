@@ -178,12 +178,4 @@ interface ConnectorInterface {
      */
     public function prepareQuery(&$query, $bindings);
 
-    /**
-     * Prepares condition statement
-     *
-     * @param array $where Array of statement, where key is field name and value is its data
-     * @return string
-     */
-    public function prepareCondition($where);
-
 }
